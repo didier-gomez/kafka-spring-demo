@@ -10,6 +10,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.KafkaProducerException;
 import org.springframework.kafka.core.KafkaSendCallback;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -21,11 +22,16 @@ public class CursoKafkaSpringApplication implements CommandLineRunner {
 
 	@Autowired
 	private KafkaTemplate<String, String> kafkaTemplate;
+	
+	@Autowired
+	private KafkaListenerEndpointRegistry registry;
 
 	public static Logger log = LoggerFactory.getLogger(CursoKafkaSpringApplication.class);
 
-	@KafkaListener(topics = "ecommerce-topic", containerFactory = "concurrentListener", properties = {
-			"max.poll.interval.ms:1000", "max.poll.records:100" }, groupId = "demo-group")
+	@KafkaListener(id="ecommerce-listener", autoStartup = "false", 
+			topics = "ecommerce-topic", containerFactory = "concurrentListener", 
+			properties = {"max.poll.interval.ms:1000", "max.poll.records:100"},
+			groupId = "demo-group")
 	public void listen(List<ConsumerRecord<String, String>> messages) {
 		log.info("Process batch started...");
 		messages.stream().forEach(message -> {
@@ -45,6 +51,9 @@ public class CursoKafkaSpringApplication implements CommandLineRunner {
 		for (int i = 0; i < 1000; i++) {
 			kafkaTemplate.send("ecommerce-topic", String.valueOf(i/100), String.format("Purcharse operation %d", i));
 		}
+		Thread.sleep(1000);
+		log.info("Start listener");
+		registry.getListenerContainer("ecommerce-listener").start();
 	}
 
 	private void sendInitialMsgWithCallback() {
