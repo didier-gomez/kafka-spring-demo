@@ -2,6 +2,7 @@ package com.dgomez.kafka;
 
 import java.util.List;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,9 +26,12 @@ public class CursoKafkaSpringApplication implements CommandLineRunner {
 
 	@KafkaListener(topics = "ecommerce-topic", containerFactory = "concurrentListener", properties = {
 			"max.poll.interval.ms:1000", "max.poll.records:100" }, groupId = "demo-group")
-	public void listen(List<String> messages) {
+	public void listen(List<ConsumerRecord<String, String>> messages) {
 		log.info("Process batch started...");
-		messages.stream().forEach(message -> log.info("Message received: {}", message));
+		messages.stream().forEach(message -> {
+			log.info("Received offset={}, key={}, msg={}",
+					message.offset(), message.key(), message.value());
+		});
 		log.info("Processed {} messages", messages.size());
 	}
 
@@ -38,8 +42,8 @@ public class CursoKafkaSpringApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 		// sendInitialMsgWithCallback();
-		for (int i = 0; i < 500; i++) {
-			kafkaTemplate.send("ecommerce-topic", String.format("Purcharse operation %d", i));
+		for (int i = 0; i < 1000; i++) {
+			kafkaTemplate.send("ecommerce-topic", String.valueOf(i/100), String.format("Purcharse operation %d", i));
 		}
 	}
 
