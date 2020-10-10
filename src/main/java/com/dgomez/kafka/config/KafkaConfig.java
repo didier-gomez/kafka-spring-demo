@@ -12,6 +12,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 
 @Configuration
 public class KafkaConfig {
@@ -35,6 +37,23 @@ public class KafkaConfig {
 		ConcurrentKafkaListenerContainerFactory<String, String> listener = new ConcurrentKafkaListenerContainerFactory<>();
 		listener.setConsumerFactory(consumerFactory());
 		return listener;
+	}
+
+	public Map<String, Object> producerProps() {
+		Map<String, Object> props = new HashMap<>();
+		props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+		props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+		props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+		return props;
+	}
+	
+	@Bean
+	public KafkaTemplate<String, String> kafkaTemplate() {
+		DefaultKafkaProducerFactory<String, String> defaultKafkaProducerFactory =
+				new DefaultKafkaProducerFactory<>(producerProps());
+		KafkaTemplate<String, String> template =
+				new KafkaTemplate<String, String>(defaultKafkaProducerFactory);
+		return template;
 	}
 
 }
