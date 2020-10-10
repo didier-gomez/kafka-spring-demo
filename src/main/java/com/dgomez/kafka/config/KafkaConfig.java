@@ -14,6 +14,11 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.MicrometerProducerListener;
+
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.prometheus.PrometheusConfig;
+import io.micrometer.prometheus.PrometheusMeterRegistry;
 
 @Configuration
 public class KafkaConfig {
@@ -32,7 +37,7 @@ public class KafkaConfig {
 		return new DefaultKafkaConsumerFactory<String, String>(consumerProps());
 	}
 
-	@Bean(name="concurrentListener")
+	@Bean(name = "concurrentListener")
 	public ConcurrentKafkaListenerContainerFactory<String, String> listenerContainerFactory() {
 		ConcurrentKafkaListenerContainerFactory<String, String> listener = new ConcurrentKafkaListenerContainerFactory<>();
 		listener.setConsumerFactory(consumerFactory());
@@ -47,14 +52,19 @@ public class KafkaConfig {
 		props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 		return props;
 	}
-	
+
 	@Bean
 	public KafkaTemplate<String, String> kafkaTemplate() {
-		DefaultKafkaProducerFactory<String, String> defaultKafkaProducerFactory =
-				new DefaultKafkaProducerFactory<>(producerProps());
-		KafkaTemplate<String, String> template =
-				new KafkaTemplate<String, String>(defaultKafkaProducerFactory);
+		DefaultKafkaProducerFactory<String, String> defaultKafkaProducerFactory = new DefaultKafkaProducerFactory<>(
+				producerProps());
+		defaultKafkaProducerFactory.addListener(new MicrometerProducerListener<String, String>(meterRegistry()));
+		KafkaTemplate<String, String> template = new KafkaTemplate<String, String>(defaultKafkaProducerFactory);
 		return template;
+	}
+
+	@Bean
+	public MeterRegistry meterRegistry() {
+		return new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
 	}
 
 }
